@@ -1,6 +1,7 @@
-import { useMemo, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import { differenceInCalendarDays } from 'date-fns'
 import { sampleQuestions } from './sampleQuestions'
+import { hasSupabase, supabase } from './supabase'
 
 const examDate = new Date('2026-11-10')
 const mistakeTypes = ['Knowledge gap','Application gap','Wording trap','Calculation error','Rushed answer','Second guessed']
@@ -15,14 +16,38 @@ export default function App() {
   const [attempts, setAttempts] = useState([])
   const [selected, setSelected] = useState('')
   const [confidence, setConfidence] = useState('Medium')
+  const [questions, setQuestions] = useState(sampleQuestions)
+  const [dataSource, setDataSource] = useState('local sample data')
 
-  const topics = [...new Set(sampleQuestions.map(q => q.topic))]
+  useEffect(() => {
+    const loadQuestions = async () => {
+      if (!hasSupabase || !supabase) return
+
+      const { data, error } = await supabase
+        .from('questions')
+        .select('*')
+        .order('id', { ascending: true })
+
+      if (error || !data?.length) {
+        setDataSource('local sample data (Supabase unavailable)')
+        return
+      }
+
+      setQuestions(data)
+      setTopic(data[0].topic)
+      setDataSource('Supabase questions table')
+    }
+
+    loadQuestions()
+  }, [])
+
+  const topics = [...new Set(questions.map(q => q.topic))]
   const daysLeft = differenceInCalendarDays(examDate, new Date())
   const weakest = useMemo(() => attempts.find(a => !a.is_correct)?.topic || 'Insurance', [attempts])
   const commonMistake = useMemo(() => attempts.filter(a => !a.is_correct).at(-1)?.mistake_type || 'Wording trap', [attempts])
 
   const startDrill = () => {
-    const pool = sampleQuestions.filter(q => q.topic === topic)
+    const pool = questions.filter(q => q.topic === topic)
     setDrill(pool.slice(0, count))
     setIdx(0)
     setSelected('')
@@ -37,7 +62,7 @@ export default function App() {
     setScreen('review')
   }
 
-  if (screen === 'dashboard') return <main className='app'><h1>CFP Performance Coach</h1><p>{daysLeft} days until CFP exam (Nov 10, 2026)</p><Card label='Weakest topic' value={weakest} /><Card label='Most common mistake type' value={commonMistake} /><Card label='Tonight\'s 20-minute drill' value={`10 ${weakest} questions in ${mode} mode`} /><button onClick={() => setScreen('setup')}>Start Drill</button><button onClick={() => setScreen('weak')}>Weak Area Dashboard</button><button onClick={() => setScreen('log')}>Mistake Log</button></main>
+  if (screen === 'dashboard') return <main className='app'><h1>CFP Performance Coach</h1><p>{daysLeft} days until CFP exam (Nov 10, 2026)</p><p>Question source: <strong>{dataSource}</strong></p><Card label='Weakest topic' value={weakest} /><Card label='Most common mistake type' value={commonMistake} /><Card label='Tonight\'s 20-minute drill' value={`10 ${weakest} questions in ${mode} mode`} /><button onClick={() => setScreen('setup')}>Start Drill</button><button onClick={() => setScreen('weak')}>Weak Area Dashboard</button><button onClick={() => setScreen('log')}>Mistake Log</button></main>
 
   if (screen === 'setup') return <main className='app'><h2>Drill Setup</h2><label>Topic<select value={topic} onChange={e => setTopic(e.target.value)}>{topics.map(t => <option key={t}>{t}</option>)}</select></label><label>Question count<select value={count} onChange={e => setCount(Number(e.target.value))}><option>5</option><option>10</option><option>20</option></select></label><label>Mode<select value={mode} onChange={e => setMode(e.target.value)}><option>Learn</option><option>Exam</option><option>Review Mistakes</option></select></label><button onClick={startDrill}>Begin</button></main>
 
