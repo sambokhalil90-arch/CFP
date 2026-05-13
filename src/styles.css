@@ -1,0 +1,11 @@
+:root { font-family: Inter, system-ui, sans-serif; }
+body { margin: 0; background: #f7f8fb; color: #1f2430; }
+.app { max-width: 460px; margin: 0 auto; padding: 16px; display: grid; gap: 12px; }
+button, select { border-radius: 10px; border: 1px solid #ccd3e0; padding: 10px; font-size: 15px; }
+button { background: white; }
+.card { background: white; border-radius: 12px; padding: 12px; border: 1px solid #e3e8f2; }
+.label { margin: 0; font-size: 13px; color: #5f6b85; }
+.value { margin: 4px 0 0; font-size: 18px; font-weight: 600; }
+.choice { text-align: left; }
+.choice.active { border-color: #5669ff; background: #edf0ff; }
+label { display: grid; gap: 6px; font-size: 14px; }
